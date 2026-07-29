@@ -1,0 +1,143 @@
+version: "3.8"
+
+# CartLake: 单机伪分布式 Hadoop 湖仓
+# HDFS + YARN + Hive + Spark,资源上限适配 29GB 开发机
+
+services:
+  namenode:
+    image: bde2020/hadoop-namenode:2.0.0-hadoop3.2.1-java8
+    container_name: cartlake-namenode
+    restart: unless-stopped
+    ports:
+      - "9870:9870"   # HDFS WebUI
+      - "8020:8020"   # HDFS RPC
+    environment:
+      - CLUSTER_NAME=cartlake
+    env_file:
+      - ./hadoop.env
+    volumes:
+      - nn_data:/hadoop/dfs/name
+
+  datanode:
+    image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
+    container_name: cartlake-datanode
+    restart: unless-stopped
+    ports:
+      - "9864:9864"
+    env_file:
+      - ./hadoop.env
+    environment:
+      - SERVICE_PRECONDITION=namenode:9870
+    volumes:
+      - dn_data:/hadoop/dfs/data
+
+  resourcemanager:
+    image: bde2020/hadoop-resourcemanager:2.0.0-hadoop3.2.1-java8
+    container_name: cartlake-resourcemanager
+    restart: unless-stopped
+    ports:
+      - "8088:8088"
+    env_file:
+      - ./hadoop.env
+    environment:
+      - SERVICE_PRECONDITION=namenode:9870 datanode:9864
+
+  nodemanager:
+    image: bde2020/hadoop-nodemanager:2.0.0-hadoop3.2.1-java8
+    container_name: cartlake-nodemanager
+    restart: unless-stopped
+    env_file:
+      - ./hadoop.env
+    environment:
+      - SERVICE_PRECONDITION=namenode:9870 datanode:9864 resourcemanager:8088
+
+  historyserver:
+    image: bde2020/hadoop-historyserver:2.0.0-hadoop3.2.1-java8
+    container_name: cartlake-historyserver
+    restart: unless-stopped
+    ports:
+      - "8188:8188"
+    env_file:
+      - ./hadoop.env
+    environment:
+      - SERVICE_PRECONDITION=namenode:9870 datanode:9864 resourcemanager:8088
+
+  hive-metastore-db:
+    image: postgres:13-alpine
+    container_name: cartlake-metastore-db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=hive
+      - POSTGRES_PASSWORD=hive
+      - POSTGRES_DB=metastore
+    volumes:
+      - metastore_db:/var/lib/postgresql/data
+
+  hive-metastore:
+    image: bitsondatadev/hive-metastore:latest
+    container_name: cartlake-hive-metastore
+    restart: unless-stopped
+    ports:
+      - "9083:9083"
+    environment:
+      - METASTORE_DB_URL=jdbc:postgresql://hive-metastore-db:5432/metastore
+      - METASTORE_DB_DRIVER=org.postgresql.Driver
+      - METASTORE_DB_USER=hive
+      - METASTORE_DB_PASS=hive
+      - HADOOP_CLIENT_OPTS=-Xmx1G
+    depends_on:
+      - hive-metastore-db
+      - namenode
+
+  hive-server:
+    image: bitsondatadev/hive:latest
+    container_name: cartlake-hive-server
+    restart: unless-stopped
+    ports:
+      - "10000:10000"  # HiveServer2 JDBC
+      - "10002:10002"  # WebUI
+    environment:
+      - HIVE_METASTORE_URI=thrift://hive-metastore:9083
+      - HADOOP_CLIENT_OPTS=-Xmx1G
+    depends_on:
+      - hive-metastore
+
+  spark-master:
+    image: bitnami/spark:3.5.1
+    container_name: cartlake-spark-master
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+      - "7077:7077"
+    environment:
+      - SPARK_MODE=master
+      - SPARK_RPC_AUTHENTICATION_ENABLED=no
+      - SPARK_RPC_ENCRYPTION_ENABLED=no
+      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
+      - SPARK_SSL_ENABLED=no
+
+  spark-worker:
+    image: bitnami/spark:3.5.1
+    container_name: cartlake-spark-worker
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_MASTER_URL=spark://spark-master:7077
+      - SPARK_WORKER_MEMORY=6G
+      - SPARK_WORKER_CORES=8
+      - SPARK_RPC_AUTHENTICATION_ENABLED=no
+      - SPARK_RPC_ENCRYPTION_ENABLED=no
+      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
+      - SPARK_SSL_ENABLED=no
+    depends_on:
+      - spark-master
+    volumes:
+      - spark_work:/opt/bitnami/spark/work
+
+volumes:
+  nn_data:
+  dn_data:
+  metastore_db:
+  spark_work:

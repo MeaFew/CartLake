@@ -1,0 +1,8 @@
+<configuration>
+  <property><name>mapreduce.framework.name</name><value>yarn</value></property>
+  <property><name>mapreduce.map.memory.mb</name><value>1536</value></property>
+  <property><name>mapreduce.reduce.memory.mb</name><value>1536</value></property>
+  <property><name>mapreduce.jobhistory.address</name><value>localhost:10020</value></property>
+  <property><name>mapreduce.jobhistory.webapp.address</name><value>localhost:8188</value></property>
+  <property><name>mapreduce.application.classpath</name><value>/home/baifan/cartlake-dist/hadoop-3.3.6/share/hadoop/mapreduce/*,/home/baifan/cartlake-dist/hadoop-3.3.6/share/hadoop/mapreduce/lib/*,/home/baifan/cartlake-dist/hadoop-3.3.6/share/hadoop/common/*,/home/baifan/cartlake-dist/hadoop-3.3.6/share/hadoop/common/lib/*,/home/baifan/cartlake-dist/hadoop-3.3.6/share/hadoop/hdfs/*,/home/baifan/cartlake-dist/hadoop-3.3.6/share/hadoop/hdfs/lib/*,/home/baifan/cartlake-dist/hadoop-3.3.6/share/hadoop/yarn/*,/home/baifan/cartlake-dist/hadoop-3.3.6/share/hadoop/yarn/lib/*</value></property>
+</configuration>

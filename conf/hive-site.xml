@@ -1,0 +1,9 @@
+<configuration>
+  <property><name>javax.jdo.option.ConnectionURL</name><value>jdbc:derby:;databaseName=/home/baifan/cartlake-dist/data/metastore_db;create=true</value></property>
+  <property><name>hive.metastore.warehouse.dir</name><value>/cartlake/warehouse</value></property>
+  <property><name>hive.exec.dynamic.partition.mode</name><value>nonstrict</value></property>
+  <property><name>hive.exec.max.dynamic.partitions</name><value>1000</value></property>
+  <property><name>hive.server2.thrift.port</name><value>10000</value></property>
+  <property><name>datanucleus.schema.autoCreateAll</name><value>true</value></property>
+  <property><name>hive.execution.engine</name><value>mr</value></property>
+</configuration>
