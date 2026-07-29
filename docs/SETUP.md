@@ -49,6 +49,15 @@ Mapper 输出 `day\tbehavior\t1` 时，框架默认**第一个制表符前才是
 ### 5. `-files` 参数里的 `~` 不展开
 bash 的波浪号展开只发生在词首；`-files a.py,b.py` 逗号后必须用 `$HOME` 或绝对路径。
 
+### 6. 动态分区覆写不清旧分区
+`INSERT OVERWRITE TABLE t PARTITION(dt)`（动态分区）只替换**本次结果集里出现的分区**，
+上一轮跑歪留下的旧分区（如 `dt=2017-11-24`）会静默残留并污染下游 CTAS。
+**修法**：`ALTER TABLE t DROP IF EXISTS PARTITION(dt=...)`，或干脆 DROP 重建。
+
+### 7. Python 里 `str.replace(old, new)` 找不到也不会报错
+运维脚本里用 replace 改 SQL/配置时，务必 `assert new in text`，否则你以为改了其实没改
+（本次时区修正第一轮就这样空跑了一遍）。
+
 ## 数据质量发现
 
 MapReduce 日聚合暴露出天池 UserBehavior 数据集 **0.055%（55,576 条，散布在 338 个脏日期上）
