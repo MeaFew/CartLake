@@ -1,0 +1,93 @@
+{
+  "ts": "2026-07-30 09:11:08",
+  "checks": [
+    {
+      "check": "ODS 行数",
+      "level": "HARD",
+      "actual": "100150807",
+      "expect": 100150807,
+      "pass": true
+    },
+    {
+      "check": "ODS 用户数",
+      "level": "SOFT",
+      "actual": "987994",
+      "expect": 987994,
+      "pass": true
+    },
+    {
+      "check": "user_id 空值",
+      "level": "HARD",
+      "actual": "0",
+      "expect": 0,
+      "pass": true
+    },
+    {
+      "check": "ODS ts 非法值(原始层信息项)",
+      "level": "SOFT",
+      "actual": "318",
+      "expect": "<500(原始层允许含污)",
+      "pass": true
+    },
+    {
+      "check": "behavior 枚举外值",
+      "level": "HARD",
+      "actual": "0",
+      "expect": 0,
+      "pass": true
+    },
+    {
+      "check": "DWD ts 非法值",
+      "level": "HARD",
+      "actual": "0",
+      "expect": 0,
+      "pass": true
+    },
+    {
+      "check": "DWD 行数",
+      "level": "HARD",
+      "actual": "100095182",
+      "expect": 100095182,
+      "pass": true
+    },
+    {
+      "check": "DWD 日期窗口",
+      "level": "HARD",
+      "actual": "2017-11-25~2017-12-03",
+      "expect": "2017-11-25~2017-12-03",
+      "pass": true
+    },
+    {
+      "check": "DWD 复合主键重复",
+      "level": "HARD",
+      "actual": "0",
+      "expect": 0,
+      "pass": true
+    },
+    {
+      "check": "清洗损耗率",
+      "level": "SOFT",
+      "actual": "0.0555%",
+      "expect": "<5%",
+      "pass": true
+    },
+    {
+      "check": "ADS 漏斗 buy 锚点",
+      "level": "HARD",
+      "actual": "(2015839, 672404)",
+      "expect": [
+        2015839,
+        672404
+      ],
+      "pass": true
+    },
+    {
+      "check": "漏斗单调性 pv≥cart,pv≥buy",
+      "level": "SOFT",
+      "actual": "True",
+      "expect": true,
+      "pass": true
+    }
+  ],
+  "verdict": "PASS"
+}

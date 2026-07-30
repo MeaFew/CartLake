@@ -75,3 +75,37 @@ Hive `from_unixtime` 跟 JVM 时区（本机 UTC）、Spark `from_unixtime` 跟�
 
 端到端校验：原始层 MR 用户聚合事件总数 **100,150,807**（官方行数一致）、用户数 **987,994**
 （官方一致）；清洗后三引擎均为 **100,095,231** 行。
+
+---
+
+# 二期（2026-07-30）：调度 + 质检 + BI
+
+## 8. HS2 与内嵌 Derby 的单写者锁
+
+Hive 3 默认内嵌 Derby metastore，**同一时刻只允许一个进程持有锁**：hive CLI、
+独立 metastore 服务、HS2 三者互斥。独立 metastore 服务在 Derby 上初始化事务工厂
+直接报 `Error creating transactional connection factory`。
+**最终架构**：HS2 独占内嵌 metastore，所有客户端（beeline/pyhive/Superset/DQ 脚本）
+统一走 `jdbc:hive2://localhost:10000`，hive CLI 从此退役。Superset 侧需
+`auth=NOSASL`（免装 sasl/thrift_sasl 这两个要 C 编译的坑），HS2 侧配
+`hive.server2.authentication=NOSASL`。
+
+## 9. HS2 代理链：NN 和 YARN RM 都要 proxyuser
+
+HS2 会话报 `User: baifan is not allowed to impersonate baifan`，修 core-site.xml
+加 `hadoop.proxyuser.baifan.{hosts,groups}=*` 后**必须同时重启 NN 和 YARN RM**——
+只重启 NN 的话，会话能开但 MR 任务提交时还会被 RM 拦下报同样的错。
+另一个坑：`~/cartlake-dist/conf/core-site.xml` 是 hive 用的副本，Hadoop 守护进程
+真正读的是 `$HADOOP_HOME/etc/hadoop/core-site.xml`。
+
+## 10. DQ 门上线首日的战利品
+
+12 项检查第一次实跑即抓两处真赃：ODS 318 条 ts≤0（原始层正常含污，降级为信息项）、
+DWD 49 条复合键残留重复（一期清洗只按窗口过滤没去重）。处理原则**修数据不改规则**：
+DWD 清洗 SQL 内建 ROW_NUMBER 去重后 12/12 全绿，DWD 行数锚点更新为 100,095,182。
+
+## 11. Airflow standalone 的 PATH 坑
+
+`airflow standalone` 内部 fork `airflow webserver/scheduler` 子命令靠 PATH 找自己——
+systemd 单元里必须 `Environment=PATH=<venv>/bin:...`，否则疯狂 restart 报
+`FileNotFoundError: 'airflow'`。

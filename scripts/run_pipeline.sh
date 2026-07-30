@@ -45,13 +45,16 @@ time mapred streaming \
 hdfs dfs -cat '/cartlake/mr_out/user_agg/part-*' > "$REPO/results/mr_user_agg.tsv"
 echo "用户聚合校验: $(wc -l < "$REPO/results/mr_user_agg.tsv") 用户 (应 987,994)"
 
-echo "═══ [5/6] Hive 数仓(ODS→DWD→ADS) ═══"
-time hive -f "$REPO/scripts/hive/01_warehouse.sql"
+echo "═══ [5/7] Hive 数仓(ODS→DWD→ADS, 经 HS2 beeline) ═══"
+time beeline -u jdbc:hive2://localhost:10000 --silent=true -f "$REPO/scripts/hive/01_warehouse.sql"
 
-echo "═══ [6/6] Spark 分析(漏斗+RFM) ═══"
+echo "═══ [6/7] Spark 分析(漏斗+RFM) ═══"
 time spark-submit --master "local[8]" \
   --conf spark.hadoop.fs.defaultFS=hdfs://localhost:8020 \
   --conf spark.driver.memory=6g \
   "$REPO/scripts/spark/rfm_funnel.py"
+
+echo "═══ [7/7] 数据质量门禁(失败即熔断) ═══"
+"$DIST/dq-venv/bin/python" "$REPO/scripts/dq_checks.py"
 
 echo "═══ CARTLAKE PIPELINE DONE ═══"

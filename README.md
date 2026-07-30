@@ -1,11 +1,14 @@
 # CartLake 🏗️🛒
 
 > 100M 行电商用户行为的 Hadoop 湖仓实战：HDFS + MapReduce + Hive + Spark 全链路，
-> 与单机 Python 方案（[ShopLytics](https://github.com/MeaFew/shoplytics)）同数据集对照。
+> Airflow 调度 + 数据质量门禁 + Superset BI 看板，
+> 与单机 Python 方案（[ShopLytics](https://github.com/MeaFew/Shoplytics)）同数据集对照。
 
 [![Hadoop](https://img.shields.io/badge/Hadoop-3.3.6-66CCFF?logo=apachehadoop&logoColor=white)]()
 [![Hive](https://img.shields.io/badge/Hive-3.1.3-FDEE21?logo=apachehive&logoColor=black)]()
 [![Spark](https://img.shields.io/badge/Spark-3.5.1-E25A1C?logo=apachespark&logoColor=white)]()
+[![Airflow](https://img.shields.io/badge/Airflow-2.10.5-017CEE?logo=apacheairflow&logoColor=white)]()
+[![Superset](https://img.shields.io/badge/Superset-BI-20A6C9)]()
 [![Data](https://img.shields.io/badge/数据-1亿行-success)]()
 
 ## 为什么有这个仓库
@@ -34,13 +37,37 @@ UserBehavior.csv (3.4GB, 100,150,807 行)
         │      daily_metrics: 日级行为计数
         │      user_agg: 用户级 pv/cart/fav/buy 聚合
         │
-        ├──► Hive 3.1.3 (engine=MR, Parquet)
-        │      ODS → DWD(按日期分区) → ADS
+        ├──► Hive 3.1.3 (engine=MR, Parquet, HS2/beeline)
+        │      ODS → DWD(按日期分区+复合键去重) → ADS
         │      漏斗 / 日大盘 / 类目 TOP
         │
         └──► Spark 3.5.1 (PySpark)
                转化漏斗 + RFM 用户分层 + 日指标
+        │
+        ▼
+┌─────────────────────────────────────────────┐
+│ 治理层 (v2, 2026-07-30)                     │
+│  Airflow 2.10.5  每日 03:00 DAG 调度 + 熔断 │
+│  DQ Gate  12 项检查 (完整性/合法性/唯一性/   │
+│           一致性/业务合理性), HARD 失败即熔断 │
+│  Superset  BI 看板: 日活趋势/转化漏斗/类目TOP│
+└─────────────────────────────────────────────┘
 ```
+
+## 数据质量门禁（DQ Gate）
+
+`scripts/dq_checks.py` 在流水线末端把关，12 项检查分五域，HARD 失败 exit 1 熔断：
+
+| 检查域 | 内容 |
+|---|---|
+| 完整性 | ODS/DWD 行数与用户数锚定 |
+| 合法性 | 日期窗口、behavior 枚举、ts 正值 |
+| 唯一性 | DWD 复合主键零重复 |
+| 一致性 | 清洗损耗率 < 5% |
+| 业务合理性 | 漏斗 buy 锚点、单调性 |
+
+首次上线即抓到真实缺陷：ODS 318 条非法时间戳（原始层信息项）+ DWD 49 条复合键
+重复 → 修数据不改规则，DWD 清洗已内建 ROW_NUMBER 去重（见 `scripts/hive/01_warehouse.sql`）。
 
 ## 快速复现
 
@@ -58,6 +85,14 @@ bash scripts/run_pipeline.sh
 关键界面（伪分布式默认端口）：
 - HDFS NameNode UI: http://localhost:9870
 - YARN ResourceManager: http://localhost:8088
+- Airflow (DAG: cartlake_daily): http://localhost:8085
+- Superset (看板: CartLake 亿级行为大盘): http://localhost:8090
+
+## 调度编排
+
+`airflow/dags/cartlake_dag.py`：每日 03:00 跑 `run_pipeline.sh`（入湖→MR→Hive→Spark）
+→ `dq_gate`（12 项质检，HARD 失败即整条 DAG 失败）。Airflow 以 standalone 模式
+运行于 `~/cartlake-dist/airflow-venv`，systemd user service 托管。
 - Spark UI: http://localhost:18080
 
 ## 结果

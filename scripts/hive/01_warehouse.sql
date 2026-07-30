@@ -32,11 +32,15 @@ SET hive.exec.dynamic.partition.mode=nonstrict;
 SET hive.exec.max.dynamic.partitions=1000;
 
 -- 数据清洗: MR 层发现 1.23% 时间戳脏数据(窗口外), DWD 层过滤
+-- 2026-07-30 追加: DQ 门抓到 49 条 (user_id,item_id,ts,behavior) 复合键重复 → ROW_NUMBER 去重
 INSERT OVERWRITE TABLE dwd_user_behavior PARTITION(dt)
-SELECT user_id, item_id, category_id, behavior, ts,
-       from_unixtime(CAST(ts AS BIGINT) + 28800, 'yyyy-MM-dd')  -- +8h: 对齐北京时间(会话 JVM 为 UTC) AS dt
-FROM ods_user_behavior
-WHERE ts BETWEEN 1511539200 AND 1512316799;  -- 2017-11-25 ~ 2017-12-03 UTC
+SELECT user_id, item_id, category_id, behavior, ts, dt FROM (
+  SELECT user_id, item_id, category_id, behavior, ts,
+         from_unixtime(CAST(ts AS BIGINT) + 28800, 'yyyy-MM-dd') AS dt,  -- +8h: 对齐北京时间(会话 JVM 为 UTC)
+         ROW_NUMBER() OVER (PARTITION BY user_id, item_id, ts, behavior ORDER BY ts) AS rn
+  FROM ods_user_behavior
+  WHERE ts BETWEEN 1511539200 AND 1512316799  -- 2017-11-25 ~ 2017-12-03 UTC
+) t WHERE rn = 1;
 
 -- ADS: 购买转化漏斗(9 天全量)
 CREATE TABLE IF NOT EXISTS ads_funnel AS
