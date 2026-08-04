@@ -3,7 +3,10 @@
 在任何一层指标交付前运行; 任一 HARD 检查失败即 exit 1 (熔断)。
 检查域: 完整性 / 合法性 / 唯一性 / 一致性 / 业务合理性
 """
-import os, re, subprocess, sys, json, time
+import os
+import sys
+import json
+import time
 
 DIST = os.environ.get('CARTLAKE_DIST', os.path.expanduser('~/cartlake-dist'))
 ENV = dict(os.environ,

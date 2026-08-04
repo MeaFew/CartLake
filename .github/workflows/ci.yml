@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install ruff==0.11.0
+      - run: ruff check scripts/ tests/ airflow/
+
+  streaming-tests:
+    # Hadoop Streaming 契约测试：mapper/reducer 是 stdin→stdout 程序，
+    # 无需集群即可在 CI 验证处理逻辑与 UTC+8 时区口径。
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install pytest
+      - run: pytest tests/ -v
