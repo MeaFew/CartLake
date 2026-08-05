@@ -5,6 +5,7 @@
 > 与单机 Python 方案（[ShopLytics](https://github.com/MeaFew/Shoplytics)）同数据集对照。
 
 [![Hadoop](https://img.shields.io/badge/Hadoop-3.3.6-66CCFF?logo=apachehadoop&logoColor=white)]()
+[![CI](https://github.com/MeaFew/CartLake/actions/workflows/ci.yml/badge.svg)](https://github.com/MeaFew/CartLake/actions/workflows/ci.yml)
 [![Hive](https://img.shields.io/badge/Hive-3.1.3-FDEE21?logo=apachehive&logoColor=black)]()
 [![Spark](https://img.shields.io/badge/Spark-3.5.1-E25A1C?logo=apachespark&logoColor=white)]()
 [![Airflow](https://img.shields.io/badge/Airflow-2.10.5-017CEE?logo=apacheairflow&logoColor=white)]()
